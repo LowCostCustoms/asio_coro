@@ -6,7 +6,6 @@
 #include <boost/asio.hpp>
 
 #include <concepts>
-#include <functional>
 
 namespace asio_coro {
 template<class T>
@@ -21,14 +20,13 @@ using task = detail::task<T>;
 template<class Executor, class Handler>
 void spawn_coroutine(Executor &executor, Handler &&handler) {
     boost::asio::post(executor, [handler = std::move(handler)]() mutable {
-        // Create a wrapper coroutine that will ensure the handler won't be destroyed until the coroutine has finished.
-        auto wrapper = std::bind([](auto &&handler) mutable -> task<void> {
-            auto local_handler = std::move(handler);
-            co_await local_handler();
-        }, std::move(handler));
+        auto wrapper_coroutine = [](auto &&handler_argument) mutable -> task<void> {
+            auto handler = std::move(handler_argument);
+            co_await handler();
+        };
 
-        auto wrapper_task = wrapper();
-        wrapper_task.release().resume();
+        auto wrapper_coroutine_task = wrapper_coroutine(std::move(handler));
+        wrapper_coroutine_task.release().resume();
     });
 }
 } // namespace asio_coro
