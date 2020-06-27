@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.5)
 project(asio_coro_extensions)
 
 option(WITH_TESTS "Build tests" ON)
