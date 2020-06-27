@@ -1,6 +1,11 @@
 #ifndef ASIO_CORO_EXTENSIONS_POST_HPP
 #define ASIO_CORO_EXTENSIONS_POST_HPP
 
+#include "detail/coroutine_holder.hpp"
+
+#include <boost/asio.hpp>
+#include <boost/scope_exit.hpp>
+
 namespace asio_coro {
 /**
  * Submits the awaiting coroutine for execution within the specified executor. See boost::asio::post for details.

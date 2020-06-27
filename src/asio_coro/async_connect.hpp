@@ -24,7 +24,7 @@ auto async_connect(Socket &socket, const Endpoint &endpoint) {
         }
 
         void await_suspend(std::coroutine_handle<> continuation) {
-            detail::coroutine_holder<> holder;
+            detail::coroutine_holder<> holder(continuation);
             BOOST_SCOPE_EXIT_ALL(&) {
                 holder.release();
             };

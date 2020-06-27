@@ -4,6 +4,7 @@
 #include "detail/coroutine_holder.hpp"
 #include "detail/concepts.hpp"
 
+#include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/scope_exit.hpp>
 

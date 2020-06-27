@@ -4,6 +4,7 @@
 #include "detail/coroutine_holder.hpp"
 
 #include <boost/scope_exit.hpp>
+#include <boost/asio.hpp>
 
 namespace asio_coro {
 /**
