@@ -2,7 +2,7 @@
 
 #include "asio_coro/task.hpp"
 #include "asio_coro/async_wait.hpp"
-#include "asio_coro/mutex.hpp"
+#include "asio_coro/dispatch.hpp"
 #include "asio_coro/async_accept.hpp"
 #include "asio_coro/async_read.hpp"
 #include "asio_coro/async_write.hpp"
@@ -48,11 +48,10 @@ int main() {
 
         while (true) {
             boost::asio::ip::tcp::socket socket(context);
-            const auto accept_error = co_await asio_coro::async_accept(acceptor, socket);
+            const auto accept_error = co_await
+            asio_coro::async_accept(acceptor, socket);
             if (accept_error) {
-                std::cout << "failed to accept an incoming connection: "
-                          << accept_error.message()
-                          << std::endl;
+                std::cout << "failed to accept an incoming connection: " << accept_error.message() << std::endl;
                 break;
             }
 
@@ -63,19 +62,23 @@ int main() {
                 const auto remote_endpoint = socket.remote_endpoint();
                 while (true) {
                     std::uint8_t buffer[1024];
-                    const auto [read_error, bytes_read] = co_await asio_coro::async_read(socket,
-                            boost::asio::mutable_buffer(buffer, 1024));
+                    const auto[read_error, bytes_read] = co_await
+                    asio_coro::async_read(socket, boost::asio::mutable_buffer(buffer, 1024));
                     if (read_error) {
-                        std::cout << "failed to read data from " << remote_endpoint << ": " << read_error.message()  << std::endl;
+                        std::cout << "failed to read data from " << remote_endpoint << ": " << read_error.message()
+                                  << std::endl;
                         break;
                     } else {
                         std::cout << "read " << bytes_read << " from " << remote_endpoint << std::endl;
                     }
 
-                    const auto [write_error, bytes_written] = co_await asio_coro::async_write(socket,
-                            boost::asio::buffer(buffer, bytes_read));
+                    const auto[write_error, bytes_written] = co_await
+                    asio_coro::async_write(socket,
+                            boost::asio::buffer(buffer, bytes_read),
+                            boost::asio::transfer_exactly(bytes_read));
                     if (write_error) {
-                        std::cout << "failed to write data to " << remote_endpoint << ": " << write_error.message() << std::endl;
+                        std::cout << "failed to write data to " << remote_endpoint << ": " << write_error.message()
+                                  << std::endl;
                         break;
                     } else {
                         std::cout << "wrote " << bytes_written << " to " << remote_endpoint << std::endl;
@@ -92,7 +95,8 @@ int main() {
 
         boost::asio::signal_set signal_set(context, SIGINT, SIGTERM);
         while (true) {
-            const auto[wait_error, signal] = co_await asio_coro::async_wait_signal(signal_set);
+            const auto[wait_error, signal] = co_await
+            asio_coro::async_wait_signal(signal_set);
             if (wait_error) {
                 std::cout << "failed to wait for signal: " << wait_error.message() << std::endl;
                 co_return;
