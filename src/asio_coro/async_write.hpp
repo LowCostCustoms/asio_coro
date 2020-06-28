@@ -2,7 +2,6 @@
 #define ASIO_CORO_EXTENSIONS_ASYNC_WRITE_HPP
 
 #include "detail/coroutine_holder.hpp"
-#include "detail/concepts.hpp"
 
 #include <boost/system/error_code.hpp>
 #include <boost/scope_exit.hpp>
@@ -31,7 +30,7 @@ auto async_write(Stream &stream, const Buffer &buffer) {
             return _result;
         }
 
-        void await_suspend(std::coroutine_handle<> continuation) {
+        void await_suspend(detail::coroutine_handle<> continuation) {
             detail::coroutine_holder<> holder(continuation);
             BOOST_SCOPE_EXIT_ALL(&) {
                 holder.release();
@@ -55,9 +54,7 @@ auto async_write(Stream &stream, const Buffer &buffer) {
 }
 
 template<class Stream, class Buffer, class CompletionCondition>
-auto async_write(Stream &stream,
-        const Buffer &buffer,
-        const CompletionCondition &completion_condition) requires detail::completion_condition<CompletionCondition> {
+auto async_write(Stream &stream, const Buffer &buffer, const CompletionCondition &completion_condition) {
     class awaitable {
     public:
         explicit awaitable(Stream &stream, const Buffer &buffer, const CompletionCondition &completion_condition)
@@ -72,7 +69,7 @@ auto async_write(Stream &stream,
             return _result;
         }
 
-        void await_suspend(std::coroutine_handle<> continuation) {
+        void await_suspend(detail::coroutine_handle<> continuation) {
             detail::coroutine_holder<> holder(continuation);
             BOOST_SCOPE_EXIT_ALL(&) {
                 holder.release();

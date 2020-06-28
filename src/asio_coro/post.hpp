@@ -25,7 +25,7 @@ auto post(Executor &executor) {
         constexpr void await_resume() const noexcept {
         }
 
-        void await_suspend(std::coroutine_handle<> continuation) {
+        void await_suspend(detail::coroutine_handle<> continuation) {
             detail::coroutine_holder<> holder(continuation);
             BOOST_SCOPE_EXIT_ALL(&) {
                 holder.release();

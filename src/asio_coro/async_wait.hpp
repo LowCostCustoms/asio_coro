@@ -6,8 +6,6 @@
 #include <boost/system/error_code.hpp>
 #include <boost/scope_exit.hpp>
 
-#include <coroutine>
-
 namespace asio_coro {
 /**
  * Returns an awaitable that suspends the awaiting coroutine until the timer callback has been called.
@@ -31,7 +29,7 @@ auto async_wait(Timer &timer) {
             return _result;
         }
 
-        void await_suspend(std::coroutine_handle<> continuation) {
+        void await_suspend(detail::coroutine_handle<> continuation) {
             detail::coroutine_holder holder(continuation);
             BOOST_SCOPE_EXIT_ALL(&holder) {
                 holder.release();

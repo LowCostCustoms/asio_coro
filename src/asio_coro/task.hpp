@@ -5,8 +5,6 @@
 
 #include <boost/asio.hpp>
 
-#include <concepts>
-
 namespace asio_coro {
 template<class T>
 using task = detail::task<T>;

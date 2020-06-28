@@ -27,7 +27,7 @@ auto async_wait_signal(SignalSet &signal_set) {
             return _result;
         }
 
-        void await_suspend(std::coroutine_handle<> continuation) {
+        void await_suspend(detail::coroutine_handle<> continuation) {
             detail::coroutine_holder<> holder(continuation);
             BOOST_SCOPE_EXIT_ALL(&) {
                 holder.release();

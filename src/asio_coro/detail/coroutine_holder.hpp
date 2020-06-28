@@ -1,14 +1,15 @@
 #ifndef ASIO_CORO_EXTENSIONS_DETAIL_COROUTINE_HOLDER_HPP
 #define ASIO_CORO_EXTENSIONS_DETAIL_COROUTINE_HOLDER_HPP
 
-#include <coroutine>
+#include "coroutine.hpp"
+
 #include <memory>
 
 namespace asio_coro::detail {
 /**
  * Helper class used to release coroutine resources automatically.
  */
-template<class CoroutineHandle = std::coroutine_handle<>>
+template<class CoroutineHandle = coroutine_handle<>>
 class coroutine_holder {
 public:
     using self_type = coroutine_holder<CoroutineHandle>;

@@ -7,6 +7,13 @@
 #include <boost/scope_exit.hpp>
 
 namespace asio_coro {
+/**
+ * Returns an awaitable that suspends the awaiting coroutine until an incoming connection is accepted by the specified
+ * acceptor or the error occurred during the accept.
+ *
+ * @param acceptor  The connection acceptor.
+ * @param socket    The newly accepted socket.
+ */
 template<class Acceptor, class Socket>
 auto async_accept(Acceptor &acceptor, Socket &socket) {
     class awaitable {
@@ -23,7 +30,7 @@ auto async_accept(Acceptor &acceptor, Socket &socket) {
             return _result;
         }
 
-        void await_suspend(std::coroutine_handle<> continuation) {
+        void await_suspend(detail::coroutine_handle<> continuation) {
             detail::coroutine_holder<> holder(continuation);
             BOOST_SCOPE_EXIT_ALL(&) {
                 holder.release();

@@ -2,7 +2,6 @@
 #define ASIO_CORO_EXTENSIONS_ASYNC_READ_HPP
 
 #include "detail/coroutine_holder.hpp"
-#include "detail/concepts.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
@@ -29,7 +28,7 @@ auto async_read(Stream &stream, const MutableBuffer &buffer) {
             return _result;
         }
 
-        void await_suspend(std::coroutine_handle<> continuation) {
+        void await_suspend(detail::coroutine_handle<> continuation) {
             detail::coroutine_holder<> holder(continuation);
             BOOST_SCOPE_EXIT_ALL(&) {
                 holder.release();
@@ -53,9 +52,7 @@ auto async_read(Stream &stream, const MutableBuffer &buffer) {
 }
 
 template<class Stream, class MutableBuffer, class CompletionCondition>
-auto async_read(Stream &stream,
-        const MutableBuffer &buffer,
-        const CompletionCondition &completion_condition) requires detail::completion_condition<CompletionCondition> {
+auto async_read(Stream &stream, const MutableBuffer &buffer, const CompletionCondition &completion_condition) {
     class awaitable {
     public:
         explicit awaitable(Stream &stream, const MutableBuffer &buffer, const CompletionCondition &completion_condition)
@@ -70,7 +67,7 @@ auto async_read(Stream &stream,
             return _result;
         }
 
-        void await_suspend(std::coroutine_handle<> continuation) {
+        void await_suspend(detail::coroutine_handle<> continuation) {
             detail::coroutine_holder<> holder(continuation);
             BOOST_SCOPE_EXIT_ALL(&) {
                 holder.release();

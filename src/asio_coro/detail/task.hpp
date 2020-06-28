@@ -60,25 +60,25 @@ public:
      * Suspends the coroutine always.
      */
     constexpr auto initial_suspend() const noexcept {
-        return std::suspend_always {};
+        return suspend_always {};
     }
 
     /**
      * Doesn't suspend the coroutine.
      */
     constexpr auto final_suspend() const noexcept {
-        return std::suspend_never {};
+        return suspend_never {};
     }
 
     /**
      * Stores the specified return value as the coroutine result.
      */
     template<class ValueType>
-    void return_value(ValueType &&value) {
+    void set_return_value(ValueType &&value) {
         assert(std::holds_alternative<none>(_value));
 
         _value.template emplace<ResultType>(std::forward<ValueType>(value));
-        if (const auto continuation = release_continuation(); continuation != nullptr) {
+        if (auto continuation = release_continuation(); continuation != nullptr) {
             continuation.resume();
         }
     }
@@ -90,7 +90,7 @@ public:
         assert(std::holds_alternative<none>(_value));
 
         _value.template emplace<exception_wrapper>(std::current_exception());
-        if (const auto continuation = release_continuation(); continuation != nullptr) {
+        if (auto continuation = release_continuation(); continuation != nullptr) {
             continuation.resume();
         }
     }
@@ -100,7 +100,7 @@ public:
      *
      * @return True if continuation has been set or false otherwise.
      */
-    bool set_continuation(std::coroutine_handle<> continuation) {
+    bool set_continuation(coroutine_handle<> continuation) {
         assert(!_continuation);
 
         if (std::holds_alternative<none>(_value)) {
@@ -125,10 +125,10 @@ public:
     }
 
 private:
-    std::coroutine_handle<> _continuation;
+    coroutine_handle<> _continuation;
     std::variant<none, exception_wrapper, ResultType> _value;
 
-    std::coroutine_handle<> release_continuation() noexcept {
+    coroutine_handle<> release_continuation() noexcept {
         const auto continuation = _continuation;
         _continuation = nullptr;
 
@@ -144,7 +144,7 @@ public:
 
     template<class ValueType>
     void return_value(ValueType &&value) {
-        base::return_value(std::forward<ValueType>(value));
+        base::set_return_value(std::forward<ValueType>(value));
     }
 
     task<ResultType> get_return_object();
@@ -157,7 +157,7 @@ public:
     using self_type = task_promise<void>;
 
     void return_void() {
-        base::return_value(0);
+        base::set_return_value(0);
     }
 
     void get_return_value() {
@@ -171,11 +171,11 @@ public:
  * A simple coroutine handle.
  */
 template<class ResultType>
-class task : public coroutine_holder<std::coroutine_handle<task_promise<ResultType>>> {
+class task : public coroutine_holder<coroutine_handle<task_promise<ResultType>>> {
 public:
-    using base = coroutine_holder<std::coroutine_handle<task_promise<ResultType>>>;
+    using base = coroutine_holder<coroutine_handle<task_promise<ResultType>>>;
     using promise_type = task_promise<ResultType>;
-    using coroutine_handle_type = std::coroutine_handle<promise_type>;
+    using coroutine_handle_type = coroutine_handle<promise_type>;
     using self_type = task<ResultType>;
 
 
@@ -227,7 +227,7 @@ public:
                 return _coroutine.promise().get_return_value();
             }
 
-            bool await_suspend(std::coroutine_handle<> continuation) {
+            bool await_suspend(coroutine_handle<> continuation) {
                 if (_coroutine.promise().set_continuation(continuation)) {
                     _coroutine.resume();
                     return true;
@@ -240,17 +240,17 @@ public:
             coroutine_handle_type _coroutine;
         };
 
-        return awaitable(base::_coroutine);
+        return awaitable(base::release());
     }
 };
 
 template<class ResultType>
 task<ResultType> task_promise<ResultType>::get_return_object() {
-    return task<ResultType>(std::coroutine_handle<self_type>::from_promise(*this));
+    return task<ResultType>(coroutine_handle<self_type>::from_promise(*this));
 }
 
 inline task<void> task_promise<void>::get_return_object() {
-    return task<void>(std::coroutine_handle<self_type>::from_promise(*this));
+    return task<void>(coroutine_handle<self_type>::from_promise(*this));
 }
 } // namespace asio_coro::detail
 

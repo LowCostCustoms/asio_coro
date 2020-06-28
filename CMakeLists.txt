@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(asio_coro_extensions)
 
 option(WITH_TESTS "Build tests" ON)
+option(WITH_EXAMPLES "Build examples" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -23,7 +24,6 @@ set(HEADERS
         src/asio_coro/post.hpp
         src/asio_coro/task.hpp
         src/asio_coro/detail/task.hpp
-        src/asio_coro/detail/concepts.hpp
         src/asio_coro/detail/coroutine_holder.hpp)
 
 add_library(asio_coro_extensions ${HEADERS})
@@ -40,4 +40,8 @@ target_compile_definitions(asio_coro_extensions PUBLIC BOOST_ASIO_DISABLE_CONCEP
 
 if(${WITH_TESTS})
     add_subdirectory(tests)
+endif()
+
+if(${WITH_EXAMPLES})
+    add_subdirectory(examples)
 endif()
