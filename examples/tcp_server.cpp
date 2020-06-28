@@ -8,11 +8,13 @@
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/format.hpp>
 
 #include <iostream>
 #include <memory>
 #include <chrono>
 #include <array>
+
 
 class server : public std::enable_shared_from_this<server> {
 public:
@@ -35,11 +37,17 @@ public:
 
                 if (const auto self = weak_self.lock(); self) {
                     if (std::chrono::steady_clock::now() - self->_last_active_time > std::chrono::seconds(5)) {
+                        const auto remote_endpoint = self->_socket.remote_endpoint();
+                        std::cout << boost::format("closing connection %1% due to inactivity timeout\n")
+                            % remote_endpoint;
+
                         boost::system::error_code error;
                         self->_socket.close(error);
 
                         if (error) {
-                            std::cout << "failed to close the socket: " << error.message() << "\n";
+                            std::cout << boost::format("failed to close connection %1%: %2%\n")
+                                % remote_endpoint
+                                % error.message();
                             break;
                         }
                     }
@@ -57,11 +65,13 @@ public:
                 const auto [read_error, read_size] = co_await asio_coro::async_read(self->_socket,
                         boost::asio::mutable_buffer(buffer.data(), buffer.size()));
                 if (read_error) {
-                    std::cout << "failed to read data from the socket: " << read_error.message() << "\n";
+                    std::cout << boost::format("failed to read data from %1%: %2%\n")
+                        % remote_endpoint
+                        % read_error.message();
                     break;
                 }
 
-                std::cout << "read " << read_size << " bytes from " << remote_endpoint << "\n";
+                std::cout << boost::format("read %1% bytes from %2%\n") % read_size % remote_endpoint;
 
                 self->_last_active_time = std::chrono::steady_clock::now();
 
@@ -69,11 +79,13 @@ public:
                         boost::asio::buffer(buffer.data(), read_size),
                         boost::asio::transfer_exactly(read_size));
                 if (write_error) {
-                    std::cout << "failed to write data to the socket: " << write_error.message() << "\n";
+                    std::cout << boost::format("failed to read write data to the %1%: %2%\n")
+                        % remote_endpoint
+                        % write_error.message();
                     break;
                 }
 
-                std::cout << "wrote " << write_size << " bytes to " << remote_endpoint << "\n";
+                std::cout << boost::format("wrote %1% bytes to %2%\n") % write_size % remote_endpoint;
             }
         });
     }
@@ -96,17 +108,17 @@ void start_accept_connections_coroutine(boost::asio::io_context &context) {
         acceptor.bind(endpoint);
         acceptor.listen();
 
-        std::cout << "listening for incoming connections on " << endpoint << "\n";
+        std::cout << boost::format("listening for incoming connections on %1%\n") % endpoint;
 
         while (true) {
             boost::asio::ip::tcp::socket socket(context);
             const auto error = co_await asio_coro::async_accept(acceptor, socket);
             if (error) {
-                std::cout << "failed to accept an incoming connection: " << error.message() << "\n";
+                std::cout << boost::format("failed to accept an incoming connection: %1%\n") % error.message();
                 break;
             }
 
-            std::cout << "an incoming connection accepted from " << socket.remote_endpoint() << "\n";
+            std::cout << boost::format("an incoming connection accepted from %1%\n") % socket.remote_endpoint();
 
             start_server_coroutine(context, std::move(socket));
         }
@@ -119,10 +131,10 @@ void start_shutdown_awaiter_coroutine(boost::asio::io_context &context) {
         const auto [error, signal] = co_await asio_coro::async_wait_signal(sigset);
 
         if (error) {
-            std::cout << "failed to wait for a signal: " << error.message() << "\n";
+            std::cout << boost::format("failed to wait for a signal: %1%\n") % error.message();
         } else {
             const auto signal_name = signal == SIGTERM ? "SIGTERM" : signal == SIGINT ? "SIGINT" : "unknown";
-            std::cout << "signal received " << signal_name << "\n";
+            std::cout << boost::format("signal %1% received, stopping the io context\n") % signal_name;
         }
 
         context.stop();
