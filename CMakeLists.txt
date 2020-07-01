@@ -4,6 +4,8 @@ project(asio_coro_extensions)
 option(WITH_TESTS "Build tests" ON)
 option(WITH_EXAMPLES "Build examples" ON)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 set(CMAKE_CXX_STANDARD 20)
 
 set(REQUIRED_BOOST_LIBRARIES system thread)
@@ -43,5 +45,6 @@ if(${WITH_TESTS})
 endif()
 
 if(${WITH_EXAMPLES})
+    find_package(FMT REQUIRED)
     add_subdirectory(examples)
 endif()
