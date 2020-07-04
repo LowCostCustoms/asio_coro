@@ -12,6 +12,13 @@
 namespace asio_coro {
 using async_read_result = std::pair<boost::system::error_code, std::size_t>;
 
+/**
+ * Returns an awaitable that suspends the awaiting coroutine until either data is read from the socket or an error
+ * occurred while reading the data.
+ *
+ * @param stream    Socket to read data from.
+ * @param buffer    The buffer to read data into.
+ */
 template<class Stream, class MutableBuffer>
 auto async_read(Stream &stream, const MutableBuffer &buffer) {
     class awaitable {
@@ -51,6 +58,14 @@ auto async_read(Stream &stream, const MutableBuffer &buffer) {
     return awaitable(stream, buffer);
 }
 
+/**
+ * Returns an awaitable that suspends the awaiting coroutine until either data is read from the socket or an error
+ * occurred while reading the data.
+ *
+ * @param stream                Socket to read data from.
+ * @param buffer                The destination data buffer.
+ * @param completion_condition  Read operation completion condition.
+ */
 template<class Stream, class MutableBuffer, class CompletionCondition>
 auto async_read(Stream &stream, const MutableBuffer &buffer, const CompletionCondition &completion_condition) {
     class awaitable {

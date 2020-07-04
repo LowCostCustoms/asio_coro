@@ -11,9 +11,6 @@
 namespace asio_coro {
 using async_write_result = std::pair<boost::system::error_code, std::size_t>;
 
-/**
- * Returns an awaitable.
- */
 template<class Stream, class Buffer>
 auto async_write(Stream &stream, const Buffer &buffer) {
     class awaitable {

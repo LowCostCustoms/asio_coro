@@ -1,4 +1,4 @@
 project(asio_coro_extensions_examples)
 
 add_executable(tcp_server tcp_server.cpp)
-target_link_libraries(tcp_server asio_coro_extensions)
+target_link_libraries(tcp_server fmt asio_coro_extensions)

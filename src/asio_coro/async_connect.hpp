@@ -7,6 +7,13 @@
 #include <boost/scope_exit.hpp>
 
 namespace asio_coro {
+/**
+ * Returns an awaitable that suspends the awaiting coroutine until either the connection is established or an error
+ * occurred during connection establishment.
+ *
+ * @param socket    Connector socket.
+ * @param endpoint  Remote endpoint to which the socket will be connected.
+ */
 template<class Socket, class Endpoint>
 auto async_connect(Socket &socket, const Endpoint &endpoint) {
     class awaitable {
