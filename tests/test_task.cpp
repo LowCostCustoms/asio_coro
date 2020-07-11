@@ -82,7 +82,17 @@ BOOST_AUTO_TEST_CASE(test_destructor) {
 }
 
 BOOST_AUTO_TEST_CASE(test_co_await) {
-    BOOST_REQUIRE(false);
+    auto result = 0;
+    auto coroutine = [&result]() mutable -> asio_coro::task<int> {
+        auto coroutine = []() -> asio_coro::task<int> {
+            co_return 100;
+        };
+        result = (co_await coroutine()) * 3;
+    };
+
+    coroutine().release().resume();
+
+    BOOST_REQUIRE_EQUAL(result, 300);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

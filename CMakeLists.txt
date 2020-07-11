@@ -25,6 +25,8 @@ set(HEADERS
         src/asio_coro/dispatch.hpp
         src/asio_coro/post.hpp
         src/asio_coro/task.hpp
+        src/asio_coro/asio_coro.hpp
+        src/asio_coro/boost_future.hpp
         src/asio_coro/detail/task.hpp
         src/asio_coro/detail/coroutine_holder.hpp)
 
