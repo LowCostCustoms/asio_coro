@@ -40,8 +40,9 @@ This library is header-only so its usage is pretty simple:
 
 int main() {
     boost::asio::io_context io_context;
-    asio_coro::spawn_coroutine([]() -> asio_coro::task<void> {
+    asio_coro::spawn_coroutine(io_context, []() -> asio_coro::task<void> {
         // whatever
+        co_return;
     });
     
     io_context.run();
