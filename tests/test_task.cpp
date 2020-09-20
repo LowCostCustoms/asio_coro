@@ -88,6 +88,7 @@ BOOST_AUTO_TEST_CASE(test_co_await) {
             co_return 100;
         };
         result = (co_await coroutine()) * 3;
+        co_return result;
     };
 
     coroutine().release().resume();

@@ -9,29 +9,17 @@
 
 namespace asio_coro::detail {
 /**
- * Represents an unset return value. Values of this type must never be used as the coroutine result.
+ * Wraps the result type to allow storing std::monostate and std::exception_ptr as the coroutine result.
  */
-class none {
-public:
-    constexpr none() = default;
-};
+template<typename ValueType>
+struct value_holder {
+    ValueType value;
 
-/**
- * Stores an exception thrown during coroutine execution. Values of this type must never be used as the
- * coroutine result.
- */
-class exception_wrapper {
-public:
-    explicit exception_wrapper(const std::exception_ptr &exception)
-            : _exception(exception) {
+    explicit value_holder(const ValueType &value) : value(value) {
     }
 
-    [[noreturn]] void rethrow_exception() const {
-        std::rethrow_exception(_exception);
+    explicit value_holder(ValueType &&value) : value(std::move(value)) {
     }
-
-private:
-    std::exception_ptr _exception;
 };
 
 template<class ResultType>
@@ -43,14 +31,13 @@ public:
     /**
      * Default constructor.
      */
-    task_promise_base() noexcept
-            : _continuation(nullptr) {
-    }
+    task_promise_base() noexcept = default;
 
     /**
-     * Destructor.
+     * Destroys the associated continuation if any.
      */
     ~task_promise_base() {
+        // If the continuation has not been resumed, destroy it.
         if (_continuation) {
             _continuation.destroy();
         }
@@ -64,76 +51,90 @@ public:
     }
 
     /**
-     * Doesn't suspend the coroutine.
+     * Either resumes the continuation if any or resumes the current coroutine.
      */
-    constexpr auto final_suspend() const noexcept {
-        return suspend_never {};
-    }
+    constexpr auto final_suspend() noexcept {
+        class awaitable {
+        public:
+            explicit awaitable(coroutine_handle<> continuation) noexcept : _continuation(continuation) {
+            }
 
-    /**
-     * Stores the specified return value as the coroutine result.
-     */
-    template<class ValueType>
-    void set_return_value(ValueType &&value) {
-        assert(std::holds_alternative<none>(_value));
+            bool await_ready() const noexcept {
+                return !_continuation;
+            }
 
-        _value.template emplace<ResultType>(std::forward<ValueType>(value));
-        if (auto continuation = release_continuation(); continuation != nullptr) {
-            continuation.resume();
-        }
+            constexpr void await_resume() const noexcept {
+                __asm__("nop");
+            }
+
+            auto await_suspend(coroutine_handle<> continuation) {
+                assert(continuation);
+                assert(_continuation);
+
+                return _continuation;
+            }
+
+        private:
+            coroutine_handle<> _continuation;
+        };
+
+        // Release the associated continuation to not delete it in destructor by mistake.
+        auto continuation = _continuation;
+        _continuation = nullptr;
+
+        return awaitable(continuation);
     }
 
     /**
      * Stores an unhandled exception as the coroutine result.
      */
     void unhandled_exception() {
-        assert(std::holds_alternative<none>(_value));
+        assert(std::holds_alternative<none_type>(_value));
 
-        _value.template emplace<exception_wrapper>(std::current_exception());
-        if (auto continuation = release_continuation(); continuation != nullptr) {
-            continuation.resume();
-        }
+        _value.template emplace<exception_type>(std::current_exception());
     }
 
     /**
-     * Attempts to set coroutine continuation.
-     *
-     * @return True if continuation has been set or false otherwise.
+     * Sets the continuation.
      */
-    bool set_continuation(coroutine_handle<> continuation) {
+    void set_continuation(coroutine_handle<> continuation) noexcept {
         assert(!_continuation);
+        assert(std::holds_alternative<none_type>(_value));
 
-        if (std::holds_alternative<none>(_value)) {
-            _continuation = continuation;
-            return true;
-        }
-
-        return false;
+        _continuation = continuation;
     }
 
     /**
      * Either returns the coroutine return value or throws the captured exception.
      */
     decltype(auto) get_return_value() {
-        assert(!std::holds_alternative<none>(_value));
+        assert(!std::holds_alternative<none_type>(_value));
 
-        if (const auto *value = std::get_if<ResultType>(&_value); value != nullptr) {
-            return std::move(*value);
+        if (const auto *value = std::get_if<value_type>(&_value); value) {
+            return std::move(value->value);
         } else {
-            std::get_if<exception_wrapper>(&_value)->rethrow_exception();
+            std::rethrow_exception(std::get<exception_type>(_value));
         }
     }
 
-private:
-    coroutine_handle<> _continuation;
-    std::variant<none, exception_wrapper, ResultType> _value;
+protected:
+    /**
+     * Stores the specified return value as the coroutine result.
+     */
+    template<class ValueType>
+    void set_return_value(ValueType &&value) {
+        assert(std::holds_alternative<none_type>(_value));
 
-    coroutine_handle<> release_continuation() noexcept {
-        const auto continuation = _continuation;
-        _continuation = nullptr;
-
-        return continuation;
+        _value.template emplace<value_type>(std::forward<ValueType>(value));
     }
+
+private:
+    using value_type = value_holder<ResultType>;
+    using exception_type = std::exception_ptr;
+    using none_type = std::monostate;
+
+    coroutine_handle<> _continuation;
+    std::variant<std::monostate, exception_type, value_type> _value;
 };
 
 template<class ResultType>
@@ -171,9 +172,8 @@ public:
  * A simple coroutine handle.
  */
 template<class ResultType>
-class task : public coroutine_holder<coroutine_handle<task_promise<ResultType>>> {
+class task {
 public:
-    using base = coroutine_holder<coroutine_handle<task_promise<ResultType>>>;
     using promise_type = task_promise<ResultType>;
     using coroutine_handle_type = coroutine_handle<promise_type>;
     using self_type = task<ResultType>;
@@ -187,8 +187,7 @@ public:
     /**
      * Constructor. Creates a task from the coroutine handle.
      */
-    task(coroutine_handle_type coroutine) noexcept
-            : base(coroutine) {
+    explicit task(coroutine_handle_type coroutine) noexcept : _coroutine_holder(coroutine) {
     }
 
     /**
@@ -208,40 +207,100 @@ public:
     self_type &operator=(self_type &&other) noexcept = default;
 
     /**
-     * Returns an awaitable that resumes the associated task.
+     * Returns an awaitable that resumes the associated task. User must validate the task object prior to calling this
+     * method!
      */
     auto operator co_await() {
-        assert(base::_coroutine);
+        assert(_coroutine_holder.valid());
 
         class awaitable {
         public:
             explicit awaitable(coroutine_handle_type coroutine) noexcept
                     : _coroutine(coroutine) {
+                assert(_coroutine);
+                assert(!_coroutine.done());
             }
 
-            bool await_ready() const noexcept {
-                return _coroutine.done();
+            /**
+             * Destroys the associated coroutine if needed.
+             */
+            ~awaitable() {
+                assert(_coroutine);
+
+                // If the associated coroutine has been destroyed via calling the destroy() method on the associated
+                // coroutine promise we shouldn't destroy it one more time!
+                if (_coroutine.done()) {
+                    _coroutine.destroy();
+                }
             }
 
+            /**
+             * Move constructor.
+             */
+            awaitable(awaitable &&other) noexcept : _coroutine(other._coroutine) {
+                other._coroutine = nullptr;
+            }
+
+            /**
+             * Does nothing.
+             */
+            constexpr bool await_ready() const noexcept {
+                assert(_coroutine);
+                
+                return false;
+            }
+
+            /**
+             * Returns the coroutine result.
+             */
             decltype(auto) await_resume() {
                 return _coroutine.promise().get_return_value();
             }
 
-            bool await_suspend(coroutine_handle<> continuation) {
-                if (_coroutine.promise().set_continuation(continuation)) {
-                    _coroutine.resume();
-                    return true;
-                } else {
-                    return false;
-                }
+            /**
+             * Sets the suspended coroutine as the associated coroutine continuation and transfers control to the
+             * associated coroutine.
+             */
+            auto await_suspend(coroutine_handle<> continuation) {
+                assert(continuation);
+                assert(_coroutine);
+
+                _coroutine.promise().set_continuation(continuation);
+                return _coroutine;
             }
 
         private:
             coroutine_handle_type _coroutine;
         };
 
-        return awaitable(base::release());
+        return awaitable(_coroutine_holder.release());
     }
+
+    /**
+     * Releases ownership over the associated coroutine object.
+     */
+    coroutine_handle_type release() noexcept {
+        return _coroutine_holder.release();
+    }
+
+    /**
+     * Checks whether this task has associated coroutine.
+     */
+    bool valid() const noexcept {
+        return _coroutine_holder.valid();
+    }
+
+    /**
+     * Destroys the associated coroutine if any.
+     */
+    void clear() noexcept {
+        _coroutine_holder.clear();
+    }
+
+private:
+    using coroutine_holder_type = coroutine_holder<coroutine_handle<task_promise<ResultType>>>;
+
+    coroutine_holder_type _coroutine_holder;
 };
 
 template<class ResultType>
