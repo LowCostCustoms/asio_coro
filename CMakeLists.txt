@@ -16,19 +16,21 @@ endif()
 find_package(Boost REQUIRED ${REQUIRED_BOOST_LIBRARIES})
 
 set(HEADERS
+        src/asio_coro/asio_coro.hpp
         src/asio_coro/async_accept.hpp
         src/asio_coro/async_connect.hpp
+        src/asio_coro/async_mutex.hpp
         src/asio_coro/async_read.hpp
-        src/asio_coro/async_wait.hpp
         src/asio_coro/async_wait_signal.hpp
+        src/asio_coro/async_wait.hpp
         src/asio_coro/async_write.hpp
+        src/asio_coro/boost_future.hpp
         src/asio_coro/dispatch.hpp
         src/asio_coro/post.hpp
         src/asio_coro/task.hpp
-        src/asio_coro/asio_coro.hpp
-        src/asio_coro/boost_future.hpp
-        src/asio_coro/detail/task.hpp
-        src/asio_coro/detail/coroutine_holder.hpp)
+        src/asio_coro/detail/coroutine_holder.hpp
+        src/asio_coro/detail/coroutine.hpp
+        src/asio_coro/detail/task.hpp)
 
 add_library(asio_coro_extensions ${HEADERS})
 target_link_libraries(asio_coro_extensions PUBLIC Boost::thread Boost::system)
