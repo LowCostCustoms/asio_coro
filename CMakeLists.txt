@@ -8,12 +8,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(REQUIRED_BOOST_LIBRARIES system thread)
-if (${WITH_TESTS})
-    list(APPEND REQUIRED_BOOST_LIBRARIES unit_test_framework)
-endif()
-
-find_package(Boost REQUIRED ${REQUIRED_BOOST_LIBRARIES})
+find_package(Boost REQUIRED system thread)
 
 set(HEADERS
         src/asio_coro/asio_coro.hpp
