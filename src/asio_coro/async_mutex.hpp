@@ -3,9 +3,6 @@
 
 #include "detail/coroutine.hpp"
 
-#include <boost/intrusive/slist.hpp>
-#include <boost/intrusive/slist_hook.hpp>
-
 #include <cassert>
 #include <mutex>
 
