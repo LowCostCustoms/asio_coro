@@ -7,8 +7,7 @@ is not guaranteed.
 ## Requirements
 
 This library requires Boost.ASIO and Boost.THREAD libraries itself.
-To run tests and examples you also need to have Boost.UnitTest and fmtlib
-libraries installed.
+To run tests and examples you also need to have fmtlib library installed.
 
 ## Building
 
