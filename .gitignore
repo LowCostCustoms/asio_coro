@@ -1,0 +1,5 @@
+syntax:glob
+.ccls-cache/
+.idea/
+.vscode/
+build/
